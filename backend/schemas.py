@@ -124,3 +124,67 @@ class PageTree(PageOut):
 
 
 PageTree.model_rebuild()
+
+
+# ──────────────────────────────────────────────
+# Tasks
+# ──────────────────────────────────────────────
+
+class TaskCreate(BaseModel):
+    title: str = "Untitled task"
+    description: str = ""
+    status: str = "todo"
+    priority: str = "medium"
+    due_date: Optional[datetime] = None
+    assignee_id: Optional[str] = None
+    parent_task_id: Optional[str] = None
+    order: int = 0
+
+
+class TaskUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    due_date: Optional[datetime] = None
+    assignee_id: Optional[str] = None
+    parent_task_id: Optional[str] = None
+    order: Optional[int] = None
+
+
+class TaskAssigneeOut(BaseModel):
+    id: str
+    name: str
+    email: str
+
+    class Config:
+        from_attributes = True
+
+
+class TaskOut(BaseModel):
+    id: str
+    title: str
+    description: str
+    status: str
+    priority: str
+    due_date: Optional[datetime]
+    page_id: Optional[str]
+    assignee_id: Optional[str]
+    assignee: Optional[TaskAssigneeOut] = None
+    parent_task_id: Optional[str]
+    order: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class TaskWithSubtasks(TaskOut):
+    subtasks: List["TaskOut"] = []
+
+    class Config:
+        from_attributes = True
+
+
+TaskWithSubtasks.model_rebuild()

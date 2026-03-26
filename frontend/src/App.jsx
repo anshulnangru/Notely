@@ -5,6 +5,8 @@ import usePagesStore from './store/usePagesStore'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import EditorPage from './pages/EditorPage'
+import DashboardPage from './pages/DashboardPage'
+import CalendarPage from './pages/CalendarPage'
 
 function ProtectedRoute({ children }) {
     const { token } = useAuthStore()
@@ -13,7 +15,9 @@ function ProtectedRoute({ children }) {
 }
 
 function HomeRedirect() {
-    const { tree, fetchTree, createPage } = usePagesStore()
+    const tree = usePagesStore(s => s.tree)
+    const fetchTree = usePagesStore(s => s.fetchTree)
+    const createPage = usePagesStore(s => s.createPage)
     const navigate = useNavigate()
     const [error, setError] = useState(null)
 
@@ -51,8 +55,7 @@ function HomeRedirect() {
         )
     }
 
-    // Redirect to first page once tree loads
-    if (tree.length > 0) return <Navigate to={`/page/${tree[0].id}`} replace />
+    if (tree.length > 0) return <Navigate to="/dashboard" replace />
 
     return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>
@@ -64,34 +67,24 @@ function HomeRedirect() {
 }
 
 export default function App() {
-    const { fetchTree } = usePagesStore()
+    const fetchTree = usePagesStore(s => s.fetchTree)
     const { token } = useAuthStore()
 
     useEffect(() => {
         if (token) fetchTree()
     }, [token])
 
+    const P = ({ children }) => <ProtectedRoute>{children}</ProtectedRoute>
+
     return (
         <BrowserRouter>
             <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
-                <Route
-                    path="/"
-                    element={
-                        <ProtectedRoute>
-                            <HomeRedirect />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/page/:id"
-                    element={
-                        <ProtectedRoute>
-                            <EditorPage />
-                        </ProtectedRoute>
-                    }
-                />
+                <Route path="/" element={<P><HomeRedirect /></P>} />
+                <Route path="/dashboard" element={<P><DashboardPage /></P>} />
+                <Route path="/calendar" element={<P><CalendarPage /></P>} />
+                <Route path="/page/:id" element={<P><EditorPage /></P>} />
                 <Route path="*" element={<Navigate to="/" />} />
             </Routes>
         </BrowserRouter>
