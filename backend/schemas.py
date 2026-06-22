@@ -17,6 +17,7 @@ class UserOut(BaseModel):
     id: str
     email: str
     name: str
+    is_email_verified: bool = False
     created_at: datetime
 
     class Config:
@@ -32,6 +33,41 @@ class Token(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+
+class RegisterResponse(BaseModel):
+    user: UserOut
+    email_verification_required: bool = True
+    email_sent: bool = False
+    email_error: Optional[str] = None
+    message: str
+
+
+class VerifyEmailResponse(BaseModel):
+    ok: bool = True
+    message: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ForgotPasswordResponse(BaseModel):
+    ok: bool = True
+    message: str
+    email_sent: bool = False
+    email_error: Optional[str] = None
+    reset_url: Optional[str] = None
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    password: str
+
+
+class ResetPasswordResponse(BaseModel):
+    ok: bool = True
+    message: str
 
 
 # ────────────────────────────────────────────────
@@ -124,6 +160,54 @@ class PageTree(PageOut):
 
 
 PageTree.model_rebuild()
+
+
+class PagePermissionCreate(BaseModel):
+    email: Optional[str] = None
+    user_id: Optional[str] = None
+    role: str
+
+
+class PagePermissionOut(BaseModel):
+    id: str
+    subject_type: str
+    subject_id: str
+    resource_type: str
+    resource_id: str
+    role: str
+    inherited_from_permission_id: Optional[str]
+    created_at: datetime
+    user: Optional[UserOut] = None
+
+
+class PagePermissionSummary(BaseModel):
+    current_user_role: str
+    permissions: List[PagePermissionOut]
+    pending_invites: List["PageInviteOut"] = []
+
+
+class PageInviteOut(BaseModel):
+    id: str
+    page_id: str
+    email: str
+    role: str
+    invited_by_user_id: str
+    accepted_at: Optional[datetime]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class SharePageResult(BaseModel):
+    permission: Optional[PagePermissionOut] = None
+    invite: Optional[PageInviteOut] = None
+    access_granted: bool = False
+    email_sent: bool = False
+    email_error: Optional[str] = None
+
+
+PagePermissionSummary.model_rebuild()
 
 
 # ──────────────────────────────────────────────

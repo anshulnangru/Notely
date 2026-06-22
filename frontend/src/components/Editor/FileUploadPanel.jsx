@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import client from '../../api/client'
 
 const ICON_MAP = {
@@ -24,6 +24,7 @@ export default function FileUploadPanel({ pageId, taskId }) {
     const [attachments, setAttachments] = useState([])
     const [uploading, setUploading] = useState(false)
     const [dragOver, setDragOver] = useState(false)
+    const fileInputRef = useRef()
 
     const endpoint = pageId
         ? `/attachments/pages/${pageId}`
@@ -39,20 +40,32 @@ export default function FileUploadPanel({ pageId, taskId }) {
 
     useEffect(() => { load() }, [pageId, taskId])
 
+    const [error, setError] = useState(null)
+
     const uploadFiles = async (files) => {
         if (!files.length) return
         setUploading(true)
+        setError(null)
         try {
             for (const file of files) {
                 const form = new FormData()
                 form.append('file', file)
                 if (pageId) form.append('page_id', pageId)
                 if (taskId) form.append('task_id', taskId)
+                // Must delete Content-Type so the browser sets the correct
+                // multipart/form-data boundary — setting it to undefined does NOT work in Axios
                 await client.post('/upload', form, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
+                    headers: { 'Content-Type': undefined },
+                    transformRequest: (data, headers) => {
+                        delete headers['Content-Type']
+                        return data
+                    },
                 })
             }
             await load()
+        } catch (err) {
+            setError('Upload failed. Please try again.')
+            console.error('Upload error:', err)
         } finally { setUploading(false) }
     }
 
@@ -70,6 +83,7 @@ export default function FileUploadPanel({ pageId, taskId }) {
     return (
         <div className="file-panel">
             <div className="file-panel-title">📎 Attachments ({attachments.length})</div>
+            {error && <div className="file-upload-error">⚠️ {error}</div>}
 
             {/* Drop zone */}
             <div
@@ -77,14 +91,14 @@ export default function FileUploadPanel({ pageId, taskId }) {
                 onDragOver={e => { e.preventDefault(); setDragOver(true) }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
-                onClick={() => document.getElementById('file-input-hidden').click()}
+                onClick={() => fileInputRef.current?.click()}
             >
                 <span className="file-drop-icon">☁️</span>
                 <span className="file-drop-text">
                     {uploading ? 'Uploading…' : 'Drop files here or click to upload'}
                 </span>
                 <input
-                    id="file-input-hidden"
+                    ref={fileInputRef}
                     type="file"
                     multiple
                     style={{ display: 'none' }}

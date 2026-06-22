@@ -1,0 +1,62 @@
+%%{init: {'flowchart': {'curve': 'basis', 'nodeSpacing': 70, 'rankSpacing': 95, 'padding': 30}, 'themeVariables': {'fontSize': '16px', 'fontFamily': 'Georgia'}} }%%
+flowchart LR
+    USER[External User]
+    COLLAB[Collaborator]
+    EMAIL[Email Service]
+    SCHEDULER[Reminder Scheduler]
+
+    AUTH([1.0 Authenticate User])
+    PAGES([2.0 Manage Pages and Blocks])
+    TASKS([3.0 Manage Tasks and Comments])
+    SHARE([4.0 Manage Sharing and Permissions])
+    ALERTS([5.0 Manage Notifications and Uploads])
+
+    USERS_DB[(Users Database)]
+    PAGES_DB[(Pages / Blocks Store)]
+    TASKS_DB[(Tasks / Comments / Tags Store)]
+    ACCESS_DB[(Permissions / Invites Store)]
+    ALERT_DB[(Notifications / Activity Store)]
+    FILES[(Uploads Storage)]
+
+    USER -->|sign up / log in| AUTH
+    AUTH -->|account / token| USER
+    AUTH <--> USERS_DB
+    AUTH -->|verification email| EMAIL
+    EMAIL -->|status| AUTH
+
+    USER -->|create, edit, reorder pages| PAGES
+    PAGES -->|page tree / content blocks| USER
+    PAGES <--> PAGES_DB
+    PAGES -.->|owner / access check| USERS_DB
+
+    USER -->|create tasks / add comments| TASKS
+    COLLAB -->|comment / update task| TASKS
+    TASKS -->|task list / discussion| USER
+    TASKS -->|assigned work / updates| COLLAB
+    TASKS <--> TASKS_DB
+    TASKS -.->|linked page context| PAGES_DB
+    TASKS -->|activity / alerts| ALERT_DB
+
+    USER -->|share page / invite member| SHARE
+    SHARE -->|access result / invite status| USER
+    SHARE -->|invite email| EMAIL
+    SHARE <--> ACCESS_DB
+    SHARE -.->|page ownership| PAGES_DB
+    SHARE -.->|user lookup| USERS_DB
+
+    USER -->|upload files / read inbox| ALERTS
+    COLLAB -->|receive mentions / shared updates| ALERTS
+    SCHEDULER -->|due soon checks| ALERTS
+    ALERTS -->|notifications / file links| USER
+    ALERTS -->|notifications| COLLAB
+    ALERTS <--> ALERT_DB
+    ALERTS <--> FILES
+    ALERTS -.->|task due dates| TASKS_DB
+
+    classDef external fill:#dff0d8,stroke:#7cb36e,color:#1f2d1f,stroke-width:1.5px;
+    classDef process fill:#dbe9ff,stroke:#7aa1e6,color:#1f355e,stroke-width:1.8px;
+    classDef store fill:#f6e4c3,stroke:#d8a74c,color:#4a3311,stroke-width:1.5px;
+
+    class USER,COLLAB,EMAIL,SCHEDULER external;
+    class AUTH,PAGES,TASKS,SHARE,ALERTS process;
+    class USERS_DB,PAGES_DB,TASKS_DB,ACCESS_DB,ALERT_DB,FILES store;

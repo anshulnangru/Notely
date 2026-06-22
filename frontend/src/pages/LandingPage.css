@@ -1,0 +1,336 @@
+/* ─────────────────────────────────────────────
+   LandingPage.css  –  theming via CSS vars
+   ───────────────────────────────────────────── */
+
+/* ── Landing local tokens — bridge to global data-theme ── */
+.landing-root {
+    --lp-bg:      var(--bg-body);
+    --lp-card:    var(--bg-primary);
+    --lp-surface: var(--bg-secondary);
+    --lp-text:    var(--text-primary);
+    --lp-muted:   var(--text-secondary);
+    --lp-border:  var(--border);
+    --lp-accent:  var(--accent);
+
+    background-color: var(--lp-bg);
+    color: var(--lp-text);
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+    display: block;
+    min-height: 100vh;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+/* ── Reset inside landing ── */
+.landing-root *, .landing-root *::before, .landing-root *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* ── NAV ── */
+.landing-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px; height: 64px;
+    border-bottom: 1px solid var(--lp-border);
+    position: sticky; top: 0; z-index: 100;
+    background: var(--lp-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: background 0.2s, border-color 0.2s;
+}
+[data-theme="dark"] .landing-nav {
+    background: rgba(17,17,19,0.92);
+}
+[data-theme="light"] .landing-nav, :root:not([data-theme]) .landing-nav {
+    background: rgba(238,240,247,0.92);
+}
+.landing-root .nav-logo {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 18px; font-weight: 700; color: var(--lp-text);
+    text-decoration: none;
+}
+.landing-root .logo-mark {
+    width: 34px; height: 34px;
+    background: var(--lp-text);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+.landing-root .logo-mark svg { width: 20px; height: 20px; }
+.landing-root .nav-right { display: flex; align-items: center; gap: 14px; }
+.landing-root .lp-nav-link {
+    font-size: 14px; font-weight: 500; color: var(--lp-muted);
+    text-decoration: none; transition: color 0.15s;
+    background: none; border: none; cursor: pointer; font-family: 'Inter', sans-serif;
+}
+.landing-root .lp-nav-link:hover { color: var(--lp-text); }
+.landing-root .btn-plain { padding: 0; }
+.landing-root .btn-nav {
+    background: var(--lp-text); color: var(--bg-body);
+    padding: 9px 20px; border-radius: 999px;
+    font-size: 14px; font-weight: 600;
+    border: none; cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: opacity 0.15s;
+}
+.landing-root .btn-nav:hover { opacity: 0.82; }
+
+/* ── HERO ── */
+.landing-root .lp-hero {
+    text-align: center;
+    padding: 100px 24px 60px;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+.landing-root .lp-hero h1 {
+    font-size: clamp(48px, 7vw, 80px);
+    font-weight: 900;
+    line-height: 1.08;
+    letter-spacing: -0.04em;
+    color: var(--lp-text);
+    margin-bottom: 28px;
+    animation: lp-fadeUp 0.6s 0.05s both;
+}
+.landing-root .lp-hero p {
+    font-size: 20px; font-weight: 400;
+    color: var(--lp-muted); line-height: 1.6;
+    max-width: 500px; margin: 0 auto 40px;
+    animation: lp-fadeUp 0.6s 0.18s both;
+}
+.landing-root .btn-hero {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--lp-text); color: var(--bg-body);
+    padding: 16px 36px; border-radius: 999px;
+    font-size: 16px; font-weight: 700;
+    border: none; cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: opacity 0.15s, transform 0.15s;
+    text-decoration: none;
+    animation: lp-fadeUp 0.6s 0.3s both;
+}
+.landing-root .btn-hero:hover { opacity: 0.88; transform: translateY(-1px); }
+.landing-root .btn-hero svg { width: 18px; height: 18px; }
+
+/* hero underline word */
+.landing-root .underline-word {
+    text-decoration: underline;
+    text-decoration-thickness: 4px;
+    text-underline-offset: 6px;
+}
+
+/* ── ILLUSTRATION ── */
+.landing-root .illustration-wrap {
+    max-width: 1160px; margin: 0 auto;
+    padding: 0 24px 80px;
+    display: flex; justify-content: center;
+    position: relative;
+    animation: lp-fadeUp 0.8s 0.45s both;
+}
+.landing-root .illustration-wrap svg {
+    width: 100%; max-width: 980px; height: auto;
+}
+
+/* ── SOCIAL PROOF ── */
+.landing-root .lp-social-proof {
+    border-top: 1px solid var(--lp-border);
+    border-bottom: 1px solid var(--lp-border);
+    padding: 32px 40px;
+    text-align: center;
+    background: var(--lp-surface);
+}
+.landing-root .lp-social-proof p {
+    font-size: 13px; font-weight: 500; color: var(--lp-muted);
+    letter-spacing: 0.05em; text-transform: uppercase;
+    margin-bottom: 24px;
+}
+.landing-root .logos { display: flex; align-items: center; justify-content: center; gap: 56px; flex-wrap: wrap; }
+.landing-root .logo-pill { font-size: 16px; font-weight: 700; color: var(--text-tertiary); letter-spacing: -0.02em; }
+
+/* ── FEATURES ── */
+.landing-root .lp-features {
+    max-width: 1280px; margin: 0 auto;
+    padding: 100px 40px;
+}
+.landing-root .features-header { text-align: center; margin-bottom: 80px; }
+.landing-root .features-header h2 {
+    font-size: clamp(36px, 5vw, 56px);
+    font-weight: 900; letter-spacing: -0.04em;
+    line-height: 1.1; margin-bottom: 16px;
+    color: var(--lp-text);
+}
+.landing-root .features-header p { font-size: 18px; color: var(--lp-muted); max-width: 480px; margin: 0 auto; }
+
+.landing-root .feature-row {
+    display: flex; align-items: center;
+    gap: 80px; margin-bottom: 100px;
+}
+.landing-root .feature-row.reverse { flex-direction: row-reverse; }
+.landing-root .feature-text { flex: 1; }
+.landing-root .feature-tag {
+    display: inline-block;
+    background: var(--bg-active); color: var(--lp-muted);
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 4px;
+    margin-bottom: 16px;
+}
+.landing-root .feature-text h3 {
+    font-size: 32px; font-weight: 800;
+    letter-spacing: -0.03em; line-height: 1.15;
+    margin-bottom: 16px; color: var(--lp-text);
+}
+.landing-root .feature-text p { font-size: 16px; color: var(--lp-muted); line-height: 1.7; }
+.landing-root .feature-visual {
+    flex: 1; background: var(--lp-surface);
+    border: 1px solid var(--lp-border); border-radius: 16px;
+    overflow: hidden; min-height: 280px;
+    display: flex; align-items: center; justify-content: center;
+}
+
+/* ── MOCK EDITOR ── */
+.landing-root .mock-editor { padding: 28px; width: 100%; }
+.landing-root .mock-title { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; color: var(--lp-text); }
+.landing-root .mock-block { font-size: 13px; color: var(--lp-muted); line-height: 1.8; margin-bottom: 2px; padding: 3px 0; }
+.landing-root .mock-block.heading { font-size: 15px; font-weight: 700; color: var(--lp-text); margin-top: 12px; }
+.landing-root .mock-block.callout {
+    background: var(--bg-active); border-left: 3px solid var(--text-secondary);
+    padding: 8px 12px; border-radius: 0 6px 6px 0;
+    margin: 8px 0; color: var(--lp-text);
+}
+.landing-root .mock-slash {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--lp-card); border: 1px solid var(--lp-border);
+    border-radius: 8px; padding: 6px 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    font-size: 12px; color: var(--lp-text); font-weight: 500;
+    margin-top: 8px;
+}
+.landing-root .slash-icon { font-size: 14px; }
+.landing-root .cursor-blink {
+    display: inline-block; width: 2px; height: 14px;
+    background: var(--lp-text); margin-left: 2px;
+    vertical-align: middle;
+    animation: lp-blink 1s step-end infinite;
+}
+
+/* ── MOCK KANBAN ── */
+.landing-root .mock-kanban { padding: 20px; display: flex; gap: 12px; width: 100%; }
+.landing-root .kanban-col { flex: 1; }
+.landing-root .kanban-col-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--lp-muted); margin-bottom: 10px;
+}
+.landing-root .kanban-card {
+    background: var(--lp-card); border: 1px solid var(--lp-border);
+    border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;
+    font-size: 12px; color: var(--lp-text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.landing-root .kanban-card-tag {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    padding: 2px 7px; border-radius: 4px; margin-bottom: 6px;
+    background: var(--bg-active); color: var(--lp-muted);
+}
+
+/* ── MOCK SEARCH ── */
+.landing-root .mock-search { padding: 24px; width: 100%; }
+.landing-root .search-bar {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--lp-card); border: 1.5px solid var(--lp-text);
+    border-radius: 10px; padding: 11px 16px; margin-bottom: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+.landing-root .search-bar input {
+    border: none; outline: none; font-size: 14px;
+    font-family: 'Inter', sans-serif; color: var(--lp-text);
+    background: none; flex: 1;
+}
+.landing-root .search-kbd {
+    font-size: 11px; color: var(--lp-muted); background: var(--bg-active);
+    padding: 2px 6px; border-radius: 4px; font-weight: 600;
+}
+.landing-root .search-result {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 8px;
+    font-size: 13px; color: var(--lp-text);
+    cursor: pointer; transition: background 0.1s;
+}
+.landing-root .search-result:hover, .landing-root .search-result.active { background: var(--bg-hover); }
+.landing-root .search-result .icon { font-size: 16px; }
+.landing-root .search-result .path { font-size: 11px; color: var(--lp-muted); margin-left: auto; }
+.landing-root .search-highlight { background: rgba(255,210,50,0.3); border-radius: 2px; padding: 0 2px; }
+
+/* ── HOW IT WORKS ── */
+.landing-root .lp-how {
+    background: var(--lp-surface);
+    border-top: 1px solid var(--lp-border);
+    border-bottom: 1px solid var(--lp-border);
+    padding: 100px 40px;
+    text-align: center;
+}
+.landing-root .lp-how h2 {
+    font-size: clamp(32px, 4vw, 48px);
+    font-weight: 900; letter-spacing: -0.04em;
+    margin-bottom: 60px; color: var(--lp-text);
+}
+.landing-root .steps { display: flex; gap: 0; max-width: 1100px; margin: 0 auto; position: relative; }
+.landing-root .steps::before {
+    content: '';
+    position: absolute; top: 28px; left: 80px; right: 80px; height: 1px;
+    background: var(--lp-border); z-index: 0;
+}
+.landing-root .step { flex: 1; position: relative; z-index: 1; }
+.landing-root .step-num {
+    width: 56px; height: 56px;
+    background: var(--lp-text); color: var(--bg-body);
+    border-radius: 50%;
+    font-size: 20px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px;
+    transition: background 0.2s, color 0.2s;
+}
+.landing-root .step h4 { font-size: 16px; font-weight: 700; margin-bottom: 8px; color: var(--lp-text); }
+.landing-root .step p { font-size: 14px; color: var(--lp-muted); line-height: 1.6; padding: 0 16px; }
+
+/* ── CTA ── */
+.landing-root .lp-cta {
+    text-align: center; padding: 120px 24px;
+    max-width: 700px; margin: 0 auto;
+}
+.landing-root .lp-cta h2 {
+    font-size: clamp(40px, 6vw, 68px);
+    font-weight: 900; letter-spacing: -0.04em;
+    line-height: 1.08; margin-bottom: 20px;
+    color: var(--lp-text);
+}
+.landing-root .lp-cta p { font-size: 18px; color: var(--lp-muted); margin-bottom: 36px; }
+
+/* ── FOOTER ── */
+.landing-root .lp-footer {
+    border-top: 1px solid var(--lp-border);
+    padding: 40px; display: flex;
+    align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 20px;
+    background: var(--lp-surface);
+}
+.landing-root .footer-logo {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 16px; font-weight: 700; color: var(--lp-text);
+}
+.landing-root .footer-links { display: flex; gap: 24px; flex-wrap: wrap; }
+.landing-root .footer-links a { font-size: 14px; color: var(--lp-muted); text-decoration: none; }
+.landing-root .footer-links a:hover { color: var(--lp-text); }
+.landing-root .footer-copy { font-size: 13px; color: var(--text-tertiary); }
+
+/* ── REVEAL ANIMATION ── */
+.landing-root .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.65s, transform 0.65s; }
+.landing-root .reveal.visible { opacity: 1; transform: none; }
+
+/* ── KEYFRAMES ── */
+@keyframes lp-fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes lp-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }

@@ -10,6 +10,7 @@ import TaskList from '../components/Tasks/TaskList'
 import CommentThread from '../components/Comments/CommentThread'
 import NotificationBell from '../components/Notifications/NotificationBell'
 import FileUploadPanel from '../components/Editor/FileUploadPanel'
+import CollaborationProvider from '../collaboration/CollaborationProvider'
 
 const TABS = [
     { id: 'editor', label: '📝 Editor' },
@@ -23,7 +24,10 @@ export default function EditorPage() {
     const navigate = useNavigate()
     const currentPage = usePagesStore(s => s.currentPage)
     const loading = usePagesStore(s => s.loading)
+    const openTabs = usePagesStore(s => s.openTabs)
     const openPage = usePagesStore(s => s.openPage)
+    const hydrateOpenTab = usePagesStore(s => s.hydrateOpenTab)
+    const closeOpenTab = usePagesStore(s => s.closeOpenTab)
     const createPage = usePagesStore(s => s.createPage)
     const fetchTasks = useTasksStore(s => s.fetchTasks)
     const clearTasks = useTasksStore(s => s.clearTasks)
@@ -34,12 +38,12 @@ export default function EditorPage() {
     useEffect(() => {
         if (id && id !== prevIdRef.current) {
             prevIdRef.current = id
-            openPage(id)
+            if (!hydrateOpenTab(id)) openPage(id)
             fetchTasks(id)
             setActiveTab('editor')
         }
         return () => { if (!id) clearTasks() }
-    }, [id])
+    }, [id, hydrateOpenTab, openPage, fetchTasks, clearTasks])
 
     const prevPageIdRef = useRef(null)
     useEffect(() => {
@@ -52,6 +56,18 @@ export default function EditorPage() {
     const handleNewPage = async () => {
         const page = await createPage(null)
         navigate(`/page/${page.id}`)
+    }
+
+    const handleCloseTab = (pageId) => {
+        const currentIndex = openTabs.findIndex(tab => tab.id === pageId)
+        const nextTab = openTabs[currentIndex + 1] || openTabs[currentIndex - 1]
+        const isCurrent = currentPage?.id === pageId
+
+        closeOpenTab(pageId)
+
+        if (!isCurrent) return
+        if (nextTab) navigate(`/page/${nextTab.id}`)
+        else navigate('/dashboard')
     }
 
     return (
@@ -68,37 +84,66 @@ export default function EditorPage() {
             )}
 
             <div className="main-content">
-                {/* Topbar */}
-                <div className="editor-topbar">
-                    {!sidebarCollapsed && (
-                        <button className="sidebar-toggle-btn" onClick={() => setSidebarCollapsed(true)} title="Collapse sidebar">◀</button>
-                    )}
-                    <div className="topbar-breadcrumb">
-                        {currentPage ? (
-                            <>
-                                <span className="crumb-emoji">{currentPage.emoji}</span>
-                                <span className="crumb-title">{currentPage.title || 'Untitled'}</span>
-                            </>
-                        ) : (
-                            <span>Select a page</span>
-                        )}
-                    </div>
-
-                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <NotificationBell />
-                    </div>
-
-                    {currentPage && (
-                        <div className="editor-tabs">
-                            {TABS.map(tab => (
+                <div className="editor-header-shell">
+                    {openTabs.length > 0 && (
+                        <div className="page-tabs-strip">
+                            {openTabs.map(tab => (
                                 <button
                                     key={tab.id}
-                                    className={`editor-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-                                    onClick={() => setActiveTab(tab.id)}
-                                >{tab.label}</button>
+                                    className={`page-tab-btn ${currentPage?.id === tab.id ? 'active' : ''}`}
+                                    onClick={() => navigate(`/page/${tab.id}`)}
+                                    title={tab.title || 'Untitled'}
+                                >
+                                    <span className="page-tab-emoji">{tab.emoji || '📄'}</span>
+                                    <span className="page-tab-title">{tab.title || 'Untitled'}</span>
+                                    <span
+                                        className="page-tab-close"
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleCloseTab(tab.id)
+                                        }}
+                                        role="button"
+                                        aria-label={`Close ${tab.title || 'Untitled'} tab`}
+                                    >
+                                        ×
+                                    </span>
+                                </button>
                             ))}
                         </div>
                     )}
+
+                    {/* Topbar */}
+                    <div className="editor-topbar">
+                        {!sidebarCollapsed && (
+                            <button className="sidebar-toggle-btn" onClick={() => setSidebarCollapsed(true)} title="Collapse sidebar">◀</button>
+                        )}
+                        <div className="topbar-breadcrumb">
+                            {currentPage ? (
+                                <>
+                                    <span className="crumb-emoji">{currentPage.emoji}</span>
+                                    <span className="crumb-title">{currentPage.title || 'Untitled'}</span>
+                                </>
+                            ) : (
+                                <span>Select a page</span>
+                            )}
+                        </div>
+
+                        {currentPage && (
+                            <div className="editor-tabs">
+                                {TABS.map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        className={`editor-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+                                        onClick={() => setActiveTab(tab.id)}
+                                    >{tab.label}</button>
+                                ))}
+                            </div>
+                        )}
+
+                        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <NotificationBell />
+                        </div>
+                    </div>
                 </div>
 
                 {/* Content area */}
@@ -114,23 +159,27 @@ export default function EditorPage() {
                             <p className="empty-state-desc">Select a page from the sidebar, or create a new one.</p>
                             <button className="btn-create-page" onClick={handleNewPage}>+ New Page</button>
                         </div>
-                    ) : activeTab === 'editor' ? (
-                        <div className="editor-wrapper">
-                            <PageHeader page={currentPage} />
-                            <BlockEditor page={currentPage} />
-                        </div>
-                    ) : activeTab === 'tasks' ? (
-                        <div className="editor-wrapper">
-                            <TaskList page={currentPage} />
-                        </div>
-                    ) : activeTab === 'comments' ? (
-                        <div className="editor-wrapper">
-                            <CommentThread pageId={currentPage.id} />
-                        </div>
                     ) : (
-                        <div className="editor-wrapper">
-                            <FileUploadPanel pageId={currentPage.id} />
-                        </div>
+                        <CollaborationProvider pageId={currentPage.id}>
+                            {activeTab === 'editor' ? (
+                                <div className="editor-wrapper">
+                                    <PageHeader page={currentPage} />
+                                    <BlockEditor page={currentPage} />
+                                </div>
+                            ) : activeTab === 'tasks' ? (
+                                <div className="editor-wrapper">
+                                    <TaskList page={currentPage} />
+                                </div>
+                            ) : activeTab === 'comments' ? (
+                                <div className="editor-wrapper">
+                                    <CommentThread pageId={currentPage.id} />
+                                </div>
+                            ) : (
+                                <div className="editor-wrapper">
+                                    <FileUploadPanel pageId={currentPage.id} />
+                                </div>
+                            )}
+                        </CollaborationProvider>
                     )}
                 </div>
 

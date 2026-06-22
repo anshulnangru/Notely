@@ -21,8 +21,23 @@ function formatDate(dateStr) {
     const d = new Date(dateStr)
     const now = new Date()
     const isOverdue = d < now
-    const opts = { month: 'short', day: 'numeric' }
-    return { label: d.toLocaleDateString(undefined, opts), overdue: isOverdue }
+    const opts = { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }
+
+    const diff = d - now
+    let countdown = ''
+    if (diff > 0) {
+        const totalMinutes = Math.floor(diff / 60000)
+        if (totalMinutes < 60) countdown = `${totalMinutes}m left`
+        else if (totalMinutes < 1440) countdown = `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m left`
+        else countdown = `${Math.floor(totalMinutes / 1440)}d left`
+    } else if (isOverdue) {
+        const overdueMinutes = Math.floor(Math.abs(diff) / 60000)
+        if (overdueMinutes < 60) countdown = `${overdueMinutes}m overdue`
+        else if (overdueMinutes < 1440) countdown = `${Math.floor(overdueMinutes / 60)}h overdue`
+        else countdown = `${Math.floor(overdueMinutes / 1440)}d overdue`
+    }
+
+    return { label: d.toLocaleString(undefined, opts), overdue: isOverdue, countdown }
 }
 
 function TaskRow({ task, pageId, onEdit }) {
@@ -70,7 +85,7 @@ function TaskRow({ task, pageId, onEdit }) {
                     </span>
                     {due && (
                         <span className={`task-due ${due.overdue && task.status !== 'done' ? 'task-due-overdue' : ''}`}>
-                            📅 {due.label}
+                            ⏰ {due.label}{due.countdown ? ` • ${due.countdown}` : ''}
                         </span>
                     )}
                     {task.assignee && (

@@ -2,15 +2,20 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import useAuthStore from './store/useAuthStore'
 import usePagesStore from './store/usePagesStore'
+import useThemeStore from './store/useThemeStore'  // initializes theme on import
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import EditorPage from './pages/EditorPage'
 import DashboardPage from './pages/DashboardPage'
 import CalendarPage from './pages/CalendarPage'
+import InboxPage from './pages/InboxPage'
+import LandingPage from './pages/LandingPage'
+import VerifyEmailPage from './pages/VerifyEmailPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 
 function ProtectedRoute({ children }) {
     const { token } = useAuthStore()
-    if (!token) return <Navigate to="/login" replace />
+    if (!token) return <Navigate to="/landing" replace />
     return children
 }
 
@@ -69,6 +74,7 @@ function HomeRedirect() {
 export default function App() {
     const fetchTree = usePagesStore(s => s.fetchTree)
     const { token } = useAuthStore()
+    // Theme is initialized by useThemeStore on module load — no manual init needed.
 
     useEffect(() => {
         if (token) fetchTree()
@@ -79,13 +85,17 @@ export default function App() {
     return (
         <BrowserRouter>
             <Routes>
+                <Route path="/landing" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/" element={<P><HomeRedirect /></P>} />
                 <Route path="/dashboard" element={<P><DashboardPage /></P>} />
                 <Route path="/calendar" element={<P><CalendarPage /></P>} />
+                <Route path="/inbox" element={<P><InboxPage /></P>} />
                 <Route path="/page/:id" element={<P><EditorPage /></P>} />
-                <Route path="*" element={<Navigate to="/" />} />
+                <Route path="*" element={<Navigate to="/landing" />} />
             </Routes>
         </BrowserRouter>
     )

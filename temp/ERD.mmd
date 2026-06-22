@@ -1,0 +1,160 @@
+%%{init: {'flowchart': {'curve': 'linear', 'nodeSpacing': 85, 'rankSpacing': 120, 'padding': 35}, 'themeVariables': {'fontSize': '16px', 'fontFamily': 'Georgia'}} }%%
+flowchart TB
+    subgraph LEFT["User & Access"]
+        direction TB
+        USER[User]
+        user_id([id])
+        user_email([email])
+        user_verified([is_email_verified])
+        PERMISSION[Page Permission]
+        permission_id([id])
+        permission_role([role])
+        INVITE[Page Invite]
+        invite_id([id])
+        invite_email([email])
+        NOTIFICATION[Notification]
+        notification_id([id])
+        notification_type([type])
+        ACTIVITY[Activity Log]
+        activity_id([id])
+        activity_action([action])
+    end
+
+    subgraph CENTER["Core Content"]
+        direction TB
+        PAGE[Page]
+        page_id([id])
+        page_title([title])
+        page_parent([parent_id])
+        BLOCK[Block]
+        block_id([id])
+        block_type([type])
+        block_order([order])
+        TASK[Task]
+        task_id([id])
+        task_status([status])
+        task_due([due_date])
+        COMMENT[Comment]
+        comment_id([id])
+        comment_body([body])
+    end
+
+    subgraph RIGHT["Labels & Files"]
+        direction TB
+        TAG[Tag]
+        tag_id([id])
+        tag_name([name])
+        ATTACHMENT[Attachment]
+        attachment_id([id])
+        attachment_file([filename])
+    end
+
+    owns{"Owns"}
+    nests{"Nests"}
+    contains_blocks{"Contains"}
+    contains_tasks{"Contains"}
+    assigns{"Assigned To"}
+    writes{"Writes"}
+    page_discussion{"Page Discussion"}
+    task_discussion{"Task Discussion"}
+    page_files{"Page Files"}
+    task_files{"Task Files"}
+    page_labels{"Page Tags"}
+    task_labels{"Task Tags"}
+    grants{"Grants Access"}
+    invites{"Invites"}
+    receives{"Receives"}
+    logs{"Logs"}
+
+    USER --- user_id
+    USER --- user_email
+    USER --- user_verified
+
+    PAGE --- page_id
+    PAGE --- page_title
+    PAGE --- page_parent
+
+    BLOCK --- block_id
+    BLOCK --- block_type
+    BLOCK --- block_order
+
+    TASK --- task_id
+    TASK --- task_status
+    TASK --- task_due
+
+    COMMENT --- comment_id
+    COMMENT --- comment_body
+
+    TAG --- tag_id
+    TAG --- tag_name
+
+    ATTACHMENT --- attachment_id
+    ATTACHMENT --- attachment_file
+
+    PERMISSION --- permission_id
+    PERMISSION --- permission_role
+
+    INVITE --- invite_id
+    INVITE --- invite_email
+
+    NOTIFICATION --- notification_id
+    NOTIFICATION --- notification_type
+
+    ACTIVITY --- activity_id
+    ACTIVITY --- activity_action
+
+    USER ---|"1"| owns
+    owns ---|"N"| PAGE
+
+    PAGE ---|"1"| nests
+    nests ---|"N"| PAGE
+
+    PAGE ---|"1"| contains_blocks
+    contains_blocks ---|"N"| BLOCK
+
+    PAGE ---|"1"| contains_tasks
+    contains_tasks ---|"N"| TASK
+
+    USER ---|"1"| assigns
+    assigns ---|"N"| TASK
+
+    USER ---|"1"| writes
+    writes ---|"N"| COMMENT
+
+    PAGE ---|"1"| page_discussion
+    page_discussion ---|"N"| COMMENT
+
+    TASK ---|"1"| task_discussion
+    task_discussion ---|"N"| COMMENT
+
+    PAGE ---|"1"| page_files
+    page_files ---|"N"| ATTACHMENT
+
+    TASK ---|"1"| task_files
+    task_files ---|"N"| ATTACHMENT
+
+    PAGE ---|"M"| page_labels
+    page_labels ---|"N"| TAG
+
+    TASK ---|"M"| task_labels
+    task_labels ---|"N"| TAG
+
+    PAGE ---|"1"| grants
+    grants ---|"N"| PERMISSION
+
+    PAGE ---|"1"| invites
+    invites ---|"N"| INVITE
+
+    USER ---|"1"| receives
+    receives ---|"N"| NOTIFICATION
+
+    USER ---|"1"| logs
+    logs ---|"N"| ACTIVITY
+
+    classDef entity fill:#edf8ea,stroke:#6ea36f,stroke-width:2px,color:#224b23,font-weight:bold;
+    classDef attr fill:#fff4f4,stroke:#cb8d8d,stroke-width:1.5px,color:#5a2626;
+    classDef rel fill:#eef0ff,stroke:#7f88d5,stroke-width:1.8px,color:#38408c;
+
+    class USER,PAGE,BLOCK,TASK,TAG,COMMENT,ATTACHMENT,PERMISSION,INVITE,NOTIFICATION,ACTIVITY entity;
+    class user_id,user_email,user_verified,page_id,page_title,page_parent,block_id,block_type,block_order,task_id,task_status,task_due,tag_id,tag_name,comment_id,comment_body,attachment_id,attachment_file,permission_id,permission_role,invite_id,invite_email,notification_id,notification_type,activity_id,activity_action attr;
+    class owns,nests,contains_blocks,contains_tasks,assigns,writes,page_discussion,task_discussion,page_files,task_files,page_labels,task_labels,grants,invites,receives,logs rel;

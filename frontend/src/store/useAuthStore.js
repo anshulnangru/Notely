@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { authApi } from '../api/auth'
 import usePagesStore from './usePagesStore'
+import usePresenceStore from './usePresenceStore'
 
 const useAuthStore = create((set) => ({
     token: localStorage.getItem('token') || null,
@@ -22,9 +23,6 @@ const useAuthStore = create((set) => ({
         usePagesStore.getState().reset()
 
         const data = await authApi.register({ email, password, name })
-        localStorage.setItem('token', data.access_token)
-        localStorage.setItem('user', JSON.stringify(data.user))
-        set({ token: data.access_token, user: data.user })
         return data
     },
 
@@ -33,6 +31,7 @@ const useAuthStore = create((set) => ({
         localStorage.removeItem('user')
         // Reset pages store so the next user doesn't see stale data
         usePagesStore.getState().reset()
+        usePresenceStore.getState().reset()
         set({ token: null, user: null })
     },
 }))

@@ -15,6 +15,12 @@ const PRIORITY_COLORS = {
 function KanbanCard({ task, onEdit, onDragStart, onDragEnd }) {
     const due = task.due_date ? new Date(task.due_date) : null
     const isOverdue = due && due < new Date() && task.status !== 'done'
+    const dueLabel = due ? due.toLocaleString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+    }) : null
 
     return (
         <div
@@ -44,7 +50,7 @@ function KanbanCard({ task, onEdit, onDragStart, onDragEnd }) {
                 <div className="kanban-card-meta">
                     {due && (
                         <span className={`kanban-due ${isOverdue ? 'overdue' : ''}`}>
-                            📅 {due.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            ⏰ {dueLabel}
                         </span>
                     )}
                     {task.subtasks?.length > 0 && (

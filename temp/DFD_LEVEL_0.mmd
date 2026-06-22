@@ -1,0 +1,36 @@
+%%{init: {'flowchart': {'curve': 'basis', 'nodeSpacing': 75, 'rankSpacing': 100, 'padding': 30}, 'themeVariables': {'fontSize': '17px', 'fontFamily': 'Georgia'}} }%%
+flowchart LR
+    USER[External User]
+    COLLAB[Collaborator]
+    EMAIL[Email Service]
+
+    SYSTEM([Notely System])
+
+    USERS_DB[(Users Database)]
+    CONTENT_DB[(Pages / Blocks Database)]
+    WORK_DB[(Tasks / Comments / Tags Database)]
+    ALERT_DB[(Notifications / Activity Database)]
+    FILES[(Uploads Storage)]
+
+    USER -->|register / log in / manage content| SYSTEM
+    SYSTEM -->|pages, tasks, notifications| USER
+
+    COLLAB -->|share links / comments / task updates| SYSTEM
+    SYSTEM -->|shared pages / mentions / invites| COLLAB
+
+    SYSTEM -->|verification / invite emails| EMAIL
+    EMAIL -->|delivery status| SYSTEM
+
+    SYSTEM <--> USERS_DB
+    SYSTEM <--> CONTENT_DB
+    SYSTEM <--> WORK_DB
+    SYSTEM <--> ALERT_DB
+    SYSTEM <--> FILES
+
+    classDef external fill:#dff0d8,stroke:#7cb36e,color:#1f2d1f,stroke-width:1.5px;
+    classDef process fill:#dbe9ff,stroke:#7aa1e6,color:#1f355e,stroke-width:1.8px;
+    classDef store fill:#f6e4c3,stroke:#d8a74c,color:#4a3311,stroke-width:1.5px;
+
+    class USER,COLLAB,EMAIL external;
+    class SYSTEM process;
+    class USERS_DB,CONTENT_DB,WORK_DB,ALERT_DB,FILES store;

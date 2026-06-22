@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from database import get_db
 from auth import get_current_user
+from services.permissions import compute_effective_page_roles, role_at_least
 import models
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -18,11 +19,8 @@ def get_dashboard(
     today_end = today_start + timedelta(days=1)
     week_end = today_start + timedelta(days=7)
 
-    # All pages owned
-    page_ids = [p.id for p in db.query(models.Page).filter(
-        models.Page.owner_id == current_user.id,
-        models.Page.is_deleted == False,
-    ).all()]
+    effective_roles = compute_effective_page_roles(db, current_user)
+    page_ids = [page_id for page_id, role in effective_roles.items() if role_at_least(role, "viewer")]
 
     all_tasks = db.query(models.Task).filter(
         models.Task.page_id.in_(page_ids),
@@ -54,7 +52,7 @@ def get_dashboard(
 
     # Recent pages
     recent_pages = db.query(models.Page).filter(
-        models.Page.owner_id == current_user.id,
+        models.Page.id.in_(page_ids),
         models.Page.is_deleted == False,
     ).order_by(models.Page.updated_at.desc()).limit(8).all()
 

@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import usePagesStore from '../../store/usePagesStore'
 import SlashMenu from './SlashMenu'
 import BlockMenu from './BlockMenu'
+import { useCollaboration } from '../../collaboration/CollaborationProvider'
 
 console.log('[Block.jsx v3] loaded')   // ← remove after confirming
 
@@ -22,13 +23,13 @@ const MD_SHORTCUTS = [
 ]
 
 // ── TodoBlock (single checkbox) ───────────────────
-function TodoBlock({ block, onChange, onKeyDown, inputRef }) {
+function TodoBlock({ block, onChange, onKeyDown, inputRef, readOnly = false }) {
     const { updateBlock } = usePagesStore()
     return (
         <div className="block-todo-row">
             <div
-                className={`todo-checkbox ${block.checked ? 'checked' : ''}`}
-                onClick={() => updateBlock(block.id, { checked: !block.checked })}
+                className={`todo-checkbox ${block.checked ? 'checked' : ''} ${readOnly ? 'disabled' : ''}`}
+                onClick={() => !readOnly && updateBlock(block.id, { checked: !block.checked })}
             >
                 {block.checked ? '✓' : ''}
             </div>
@@ -41,13 +42,14 @@ function TodoBlock({ block, onChange, onKeyDown, inputRef }) {
                 onKeyDown={onKeyDown}
                 rows={1}
                 style={{ resize: 'none' }}
+                readOnly={readOnly}
             />
         </div>
     )
 }
 
 // ── BulletBlock ───────────────────────────────────
-function BulletBlock({ block, onChange, onKeyDown, inputRef }) {
+function BulletBlock({ block, onChange, onKeyDown, inputRef, readOnly = false }) {
     return (
         <div className="block-bullet-row">
             <div className="bullet-marker"><div className="bullet-dot" /></div>
@@ -60,13 +62,14 @@ function BulletBlock({ block, onChange, onKeyDown, inputRef }) {
                 onKeyDown={onKeyDown}
                 rows={1}
                 style={{ resize: 'none' }}
+                readOnly={readOnly}
             />
         </div>
     )
 }
 
 // ── NumberedBlock ─────────────────────────────────
-function NumberedBlock({ block, numberedIdx, onChange, onKeyDown, inputRef }) {
+function NumberedBlock({ block, numberedIdx, onChange, onKeyDown, inputRef, readOnly = false }) {
     return (
         <div className="block-numbered-row">
             <div className="numbered-marker">{numberedIdx + 1}.</div>
@@ -79,13 +82,14 @@ function NumberedBlock({ block, numberedIdx, onChange, onKeyDown, inputRef }) {
                 onKeyDown={onKeyDown}
                 rows={1}
                 style={{ resize: 'none' }}
+                readOnly={readOnly}
             />
         </div>
     )
 }
 
 // ── ToggleBlock ───────────────────────────────────
-function ToggleBlock({ block, onChange, onKeyDown, inputRef }) {
+function ToggleBlock({ block, onChange, onKeyDown, inputRef, readOnly = false }) {
     const [open, setOpen] = useState(false)
     return (
         <div className="block-toggle">
@@ -100,6 +104,7 @@ function ToggleBlock({ block, onChange, onKeyDown, inputRef }) {
                     onKeyDown={onKeyDown}
                     rows={1}
                     style={{ resize: 'none', flex: 1 }}
+                    readOnly={readOnly}
                 />
             </div>
             {open && (
@@ -116,7 +121,7 @@ function ToggleBlock({ block, onChange, onKeyDown, inputRef }) {
 // ── CalloutBlock ──────────────────────────────────
 const CALLOUT_EMOJIS = ['💡', '⚠️', '✅', '❌', '📌', '🔥', '💬', '📢', '🎯', '🧪']
 
-function CalloutBlock({ block, onChange, onKeyDown, inputRef }) {
+function CalloutBlock({ block, onChange, onKeyDown, inputRef, readOnly = false }) {
     const parts = block.content.includes('|')
         ? [block.content.split('|')[0], block.content.split('|').slice(1).join('|')]
         : ['💡', block.content]
@@ -133,7 +138,7 @@ function CalloutBlock({ block, onChange, onKeyDown, inputRef }) {
     return (
         <div className="block-callout">
             <div style={{ position: 'relative', flexShrink: 0 }}>
-                <span className="callout-emoji" onClick={() => setShowPicker(s => !s)}>{emojiVal}</span>
+                <span className="callout-emoji" onClick={() => !readOnly && setShowPicker(s => !s)}>{emojiVal}</span>
                 {showPicker && (
                     <div className="callout-emoji-picker fade-in">
                         {CALLOUT_EMOJIS.map(e => (
@@ -151,56 +156,129 @@ function CalloutBlock({ block, onChange, onKeyDown, inputRef }) {
                 onKeyDown={onKeyDown}
                 rows={1}
                 style={{ resize: 'none', flex: 1 }}
+                readOnly={readOnly}
             />
         </div>
     )
 }
 
 // ── ImageBlock ────────────────────────────────────
+const API_BASE = 'http://localhost:8000'
+
 function ImageBlock({ block, onChange }) {
+    const [tab, setTab] = useState('upload')   // 'upload' | 'url'
     const [inputUrl, setInputUrl] = useState('')
     const [imgError, setImgError] = useState(false)
+    const [uploading, setUploading] = useState(false)
+    const fileInputRef = useRef()
 
-    // ── URL not yet set → show the form ──
+    const handleFileUpload = async (e) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        setUploading(true)
+        try {
+            // Import client lazily to avoid circular deps
+            const { default: client } = await import('../../api/client')
+            const form = new FormData()
+            form.append('file', file)
+            // Must delete Content-Type so the browser sets the correct
+            // multipart/form-data boundary — setting it to undefined does NOT work in Axios
+            const res = await client.post('/upload', form, {
+                headers: { 'Content-Type': undefined },
+                transformRequest: (data, headers) => {
+                    delete headers['Content-Type']
+                    return data
+                },
+            })
+            onChange(`${API_BASE}${res.data.url}`)
+        } catch (err) {
+            console.error('Image upload failed', err)
+        } finally {
+            setUploading(false)
+        }
+    }
+
+    // ── No image yet → show upload/embed form ──
     if (!block.content) {
         return (
             <div className="block-image-placeholder">
                 <span className="image-placeholder-icon">🖼</span>
-                <form
-                    style={{ display: 'flex', gap: 8, flex: 1 }}
-                    onSubmit={e => {
-                        e.preventDefault()
-                        const url = inputUrl.trim()
-                        if (url) { onChange(url); setInputUrl('') }
-                    }}
-                >
-                    <input
-                        className="image-url-input"
-                        type="text"
-                        placeholder="Paste image URL and press Enter…"
-                        value={inputUrl}
-                        onChange={e => setInputUrl(e.target.value)}
-                        autoFocus
-                    />
-                    <button type="submit" className="image-url-btn">Embed</button>
-                </form>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {/* Tab switcher */}
+                    <div className="image-tab-bar">
+                        <button
+                            className={`image-tab-btn ${tab === 'upload' ? 'active' : ''}`}
+                            type="button"
+                            onClick={() => setTab('upload')}
+                        >
+                            📁 Upload file
+                        </button>
+                        <button
+                            className={`image-tab-btn ${tab === 'url' ? 'active' : ''}`}
+                            type="button"
+                            onClick={() => setTab('url')}
+                        >
+                            🔗 Embed URL
+                        </button>
+                    </div>
+
+                    {tab === 'upload' && (
+                        <div className="image-upload-area"
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                style={{ display: 'none' }}
+                                onChange={handleFileUpload}
+                            />
+                            {uploading
+                                ? <span>Uploading…</span>
+                                : <span>Click to choose an image from your files</span>
+                            }
+                        </div>
+                    )}
+
+                    {tab === 'url' && (
+                        <form
+                            style={{ display: 'flex', gap: 8 }}
+                            onSubmit={e => {
+                                e.preventDefault()
+                                const url = inputUrl.trim()
+                                if (url) { onChange(url); setInputUrl('') }
+                            }}
+                        >
+                            <input
+                                className="image-url-input"
+                                type="text"
+                                placeholder="Paste image URL and press Enter…"
+                                value={inputUrl}
+                                onChange={e => setInputUrl(e.target.value)}
+                                autoFocus
+                            />
+                            <button type="submit" className="image-url-btn">Embed</button>
+                        </form>
+                    )}
+                </div>
             </div>
         )
     }
 
-    // ── URL is set → show the image ──
+    // ── Image set → show the image ──
+    const src = block.content.startsWith('http') ? block.content : `${API_BASE}${block.content}`
     return (
         <div className="block-image-wrap">
             {imgError ? (
                 <div className="block-image-error">
                     ⚠️ Could not load image.
                     <button className="image-change-url-btn" onClick={() => { onChange(''); setImgError(false) }}>
-                        Change URL
+                        Change
                     </button>
                 </div>
             ) : (
                 <img
-                    src={block.content}
+                    src={src}
                     alt="Embedded image"
                     className="block-image"
                     onLoad={() => setImgError(false)}
@@ -209,8 +287,8 @@ function ImageBlock({ block, onChange }) {
             )}
             {!imgError && (
                 <div className="block-image-overlay">
-                    <button className="image-change-url-btn" onClick={() => { onChange(''); setInputUrl(block.content); setImgError(false) }}>
-                        ✎ Change URL
+                    <button className="image-change-url-btn" onClick={() => { onChange(''); setImgError(false) }}>
+                        ✎ Change image
                     </button>
                 </div>
             )}
@@ -656,16 +734,24 @@ function TableBlock({ block, onChange }) {
 // ── Main Block Component ──────────────────────────
 export default function Block({ block, pageId, idx, numberedIdx, focusNext, focusPrev }) {
     const { updateBlock, deleteBlock, createBlock } = usePagesStore()
+    const currentPageRole = usePagesStore(s => s.currentPageRole)
+    const { focusBlock } = useCollaboration()
+    const isEditable = ['owner', 'editor'].includes(currentPageRole)
     const inputRef = useRef()
     const menuBtnRef = useRef()
     const [slashState, setSlashState] = useState(null)
     const [showMenu, setShowMenu] = useState(false)
     const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
 
-    // Close menu on scroll
+    // Close menu on scroll — but NOT when scrolling inside the menu itself
+    const menuRef = useRef()
     useEffect(() => {
         if (!showMenu) return
-        const close = () => setShowMenu(false)
+        const close = (e) => {
+            // If the scroll target is inside the context menu, let it scroll
+            if (menuRef.current && menuRef.current.contains(e.target)) return
+            setShowMenu(false)
+        }
         window.addEventListener('scroll', close, true)
         return () => window.removeEventListener('scroll', close, true)
     }, [showMenu])
@@ -689,6 +775,7 @@ export default function Block({ block, pageId, idx, numberedIdx, focusNext, focu
     }
 
     const handleContentChange = useCallback(async (val) => {
+        if (!isEditable) return
         autoResize()
 
         // Markdown shortcut detection
@@ -711,12 +798,13 @@ export default function Block({ block, pageId, idx, numberedIdx, focusNext, focu
         }
 
         await updateBlock(block.id, { content: val })
-    }, [block.id, updateBlock])
+    }, [block.id, updateBlock, isEditable])
 
     const handleKeyDown = async (e) => {
+        if (!isEditable) return
         if (slashState && ['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(e.key)) return
 
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
             e.preventDefault()
             const newBlock = await createBlock(pageId, block.order, 'text')
             setTimeout(() => focusNext(newBlock?.id), 80)
@@ -730,6 +818,9 @@ export default function Block({ block, pageId, idx, numberedIdx, focusNext, focu
         } else if (e.key === 'ArrowDown') {
             const el = inputRef.current
             if (el && el.selectionStart === el.value.length) { e.preventDefault(); focusNext() }
+        } else if (e.key === 'Enter') {
+            // Plain Enter now keeps typing in the same block.
+            setTimeout(autoResize, 0)
         }
     }
 
@@ -746,7 +837,7 @@ export default function Block({ block, pageId, idx, numberedIdx, focusNext, focu
         setTimeout(() => inputRef.current?.focus(), 50)
     }
 
-    const cProps = { block, onChange: handleContentChange, onKeyDown: handleKeyDown, inputRef }
+    const cProps = { block, onChange: handleContentChange, onKeyDown: handleKeyDown, inputRef, readOnly: !isEditable }
 
     const slashPos = slashState?.rect
         ? { top: slashState.rect.bottom + window.scrollY + 4, left: slashState.rect.left + window.scrollX }
@@ -754,9 +845,9 @@ export default function Block({ block, pageId, idx, numberedIdx, focusNext, focu
 
     const renderContent = () => {
         switch (block.type) {
-            case 'h1': return <textarea ref={inputRef} className="block-editable block-h1" value={block.content} placeholder="Heading 1" onChange={e => handleContentChange(e.target.value)} onKeyDown={handleKeyDown} rows={1} style={{ resize: 'none' }} />
-            case 'h2': return <textarea ref={inputRef} className="block-editable block-h2" value={block.content} placeholder="Heading 2" onChange={e => handleContentChange(e.target.value)} onKeyDown={handleKeyDown} rows={1} style={{ resize: 'none' }} />
-            case 'h3': return <textarea ref={inputRef} className="block-editable block-h3" value={block.content} placeholder="Heading 3" onChange={e => handleContentChange(e.target.value)} onKeyDown={handleKeyDown} rows={1} style={{ resize: 'none' }} />
+            case 'h1': return <textarea ref={inputRef} className="block-editable block-h1" value={block.content} placeholder="Heading 1" onChange={e => handleContentChange(e.target.value)} onKeyDown={handleKeyDown} rows={1} style={{ resize: 'none' }} readOnly={!isEditable} />
+            case 'h2': return <textarea ref={inputRef} className="block-editable block-h2" value={block.content} placeholder="Heading 2" onChange={e => handleContentChange(e.target.value)} onKeyDown={handleKeyDown} rows={1} style={{ resize: 'none' }} readOnly={!isEditable} />
+            case 'h3': return <textarea ref={inputRef} className="block-editable block-h3" value={block.content} placeholder="Heading 3" onChange={e => handleContentChange(e.target.value)} onKeyDown={handleKeyDown} rows={1} style={{ resize: 'none' }} readOnly={!isEditable} />
             case 'todo': return <TodoBlock {...cProps} />
             case 'bullet': return <BulletBlock {...cProps} />
             case 'numbered': return <NumberedBlock {...cProps} numberedIdx={numberedIdx} />
@@ -768,14 +859,14 @@ export default function Block({ block, pageId, idx, numberedIdx, focusNext, focu
             case 'table':    return <TableBlock block={block} onChange={val => updateBlock(block.id, { content: val })} />
             case 'kanban':   return <KanbanBlock block={block} onChange={val => updateBlock(block.id, { content: val })} />
             case 'divider': return <hr className="block-divider" />
-            case 'quote': return <textarea ref={inputRef} className="block-editable block-quote" value={block.content} placeholder="Quote" onChange={e => handleContentChange(e.target.value)} onKeyDown={handleKeyDown} rows={1} style={{ resize: 'none' }} />
-            case 'code': return <textarea ref={inputRef} className="block-editable block-code" value={block.content} placeholder="// Code..." onChange={e => handleContentChange(e.target.value)} onKeyDown={handleKeyDown} rows={1} style={{ resize: 'none' }} spellCheck={false} />
-            default: return <textarea ref={inputRef} className="block-editable" value={block.content} placeholder="Type '/' for commands..." onChange={e => handleContentChange(e.target.value)} onKeyDown={handleKeyDown} rows={1} style={{ resize: 'none' }} />
+            case 'quote': return <textarea ref={inputRef} className="block-editable block-quote" value={block.content} placeholder="Quote" onChange={e => handleContentChange(e.target.value)} onKeyDown={handleKeyDown} rows={1} style={{ resize: 'none' }} readOnly={!isEditable} />
+            case 'code': return <textarea ref={inputRef} className="block-editable block-code" value={block.content} placeholder="// Code..." onChange={e => handleContentChange(e.target.value)} onKeyDown={handleKeyDown} rows={1} style={{ resize: 'none' }} spellCheck={false} readOnly={!isEditable} />
+            default: return <textarea ref={inputRef} className="block-editable" value={block.content} placeholder="Type '/' for commands..." onChange={e => handleContentChange(e.target.value)} onKeyDown={handleKeyDown} rows={1} style={{ resize: 'none' }} readOnly={!isEditable} />
         }
     }
 
     return (
-        <div className="block-row" id={`block-${block.id}`}>
+        <div className="block-row" id={`block-${block.id}`} onFocus={() => focusBlock(block.id)}>
             <span className="block-drag-handle" title="Drag to reorder">⠿</span>
             <div className="block-content">
                 {renderContent()}
@@ -805,6 +896,7 @@ export default function Block({ block, pageId, idx, numberedIdx, focusNext, focu
                     block={block}
                     pageId={pageId}
                     position={menuPos}
+                    menuRef={menuRef}
                     onClose={() => setShowMenu(false)}
                 />,
                 document.body

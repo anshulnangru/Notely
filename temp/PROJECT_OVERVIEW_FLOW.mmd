@@ -1,0 +1,23 @@
+%%{init: {'flowchart': {'curve': 'basis', 'nodeSpacing': 70, 'rankSpacing': 110, 'padding': 30}, 'themeVariables': {'fontSize': '18px', 'fontFamily': 'Georgia'}} }%%
+flowchart LR
+    USER[User]
+    WORKSPACE[Workspace]
+    PAGE[Page]
+    BLOCK[Block]
+    TASK[Task]
+    COMMENT[Comment]
+    RESOURCE[Tags / Attachments]
+    NOTIFICATION[Notification]
+
+    USER -->|member of| WORKSPACE
+    WORKSPACE -->|organizes| PAGE
+    PAGE -->|built from| BLOCK
+    PAGE -->|can include| TASK
+    PAGE -->|has discussion| COMMENT
+    TASK -->|tracks action items| COMMENT
+    PAGE -->|can include| RESOURCE
+    TASK -->|can include| RESOURCE
+    USER -->|creates / collaborates on| PAGE
+    USER -->|owns / is assigned| TASK
+    WORKSPACE -->|notifies users about| NOTIFICATION
+    TASK -->|triggers| NOTIFICATION

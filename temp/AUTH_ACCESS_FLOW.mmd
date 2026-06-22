@@ -1,0 +1,37 @@
+flowchart LR
+    USER[User]
+    REGISTER[Register]
+    VERIFY[Verify Email]
+    LOGIN[Login]
+    JWT[JWT Session]
+    PROFILE[Load Profile]
+    WORKSPACE[Open Workspace]
+    SIDEBAR[Sidebar / Page Tree]
+    PAGE[Open Page]
+    EDITOR[Block Editor]
+    TASKS[Tasks Panel]
+    COMMENTS[Comments]
+    FILES[Attachments]
+    SHARE[Share / Invite]
+    COLLAB[Live Collaboration]
+    INBOX[Inbox]
+    DASHBOARD[Dashboard]
+    CALENDAR[Calendar]
+
+    USER --> REGISTER
+    REGISTER --> VERIFY
+    VERIFY --> LOGIN
+    LOGIN --> JWT
+    JWT --> PROFILE
+    PROFILE --> WORKSPACE
+    WORKSPACE --> SIDEBAR
+    SIDEBAR --> PAGE
+    PAGE --> EDITOR
+    PAGE --> TASKS
+    PAGE --> COMMENTS
+    PAGE --> FILES
+    PAGE --> SHARE
+    SHARE --> COLLAB
+    WORKSPACE --> INBOX
+    WORKSPACE --> DASHBOARD
+    WORKSPACE --> CALENDAR

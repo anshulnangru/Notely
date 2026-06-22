@@ -14,16 +14,24 @@ const PRIORITY_OPTIONS = [
     { value: 'urgent', label: '🔴 Urgent' },
 ]
 
-export default function TaskModal({ task, pageId, onClose }) {
+export default function TaskModal({ task, pageId, onClose, onSaved }) {
     const { createTask, updateTask, fetchTasks } = useTasksStore()
     const isNew = !task?.id
+
+    const toDateTimeLocal = (value) => {
+        if (!value) return ''
+        const date = new Date(value)
+        const offset = date.getTimezoneOffset()
+        const localDate = new Date(date.getTime() - offset * 60000)
+        return localDate.toISOString().slice(0, 16)
+    }
 
     const [form, setForm] = useState({
         title: task?.title || '',
         description: task?.description || '',
         status: task?.status || 'todo',
         priority: task?.priority || 'medium',
-        due_date: task?.due_date ? task.due_date.slice(0, 10) : '',
+        due_date: toDateTimeLocal(task?.due_date),
         assignee_id: task?.assignee_id || '',
     })
     const [saving, setSaving] = useState(false)
@@ -36,7 +44,7 @@ export default function TaskModal({ task, pageId, onClose }) {
         try {
             const payload = {
                 ...form,
-                due_date: form.due_date ? `${form.due_date}T00:00:00` : null,
+                due_date: form.due_date ? new Date(form.due_date).toISOString() : null,
                 assignee_id: form.assignee_id || null,
             }
             if (isNew) {
@@ -45,6 +53,7 @@ export default function TaskModal({ task, pageId, onClose }) {
                 await updateTask(task.id, payload)
             }
             await fetchTasks(pageId)
+            await onSaved?.()
             onClose()
         } finally {
             setSaving(false)
@@ -125,9 +134,9 @@ export default function TaskModal({ task, pageId, onClose }) {
 
                     {/* Due date */}
                     <div className="task-modal-field">
-                        <label className="task-modal-label">Due Date</label>
+                        <label className="task-modal-label">Due Time</label>
                         <input
-                            type="date"
+                            type="datetime-local"
                             className="task-modal-input"
                             value={form.due_date}
                             onChange={e => set('due_date', e.target.value)}

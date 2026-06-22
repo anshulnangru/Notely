@@ -4,6 +4,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 from database import get_db
 from auth import get_current_user
+from services.permissions import compute_effective_page_roles, require_page_role, role_at_least
 import models
 
 router = APIRouter(prefix="/tags", tags=["tags"])
@@ -76,6 +77,8 @@ def add_tag_to_task(
     tag = db.query(models.Tag).filter(models.Tag.id == tag_id, models.Tag.owner_id == current_user.id).first()
     if not task or not tag:
         raise HTTPException(status_code=404, detail="Task or tag not found")
+    if task.page_id:
+        require_page_role(db, current_user, task.page_id, "editor")
     if tag not in task.tags:
         task.tags.append(tag)
         db.commit()
@@ -93,6 +96,8 @@ def remove_tag_from_task(
     tag = db.query(models.Tag).filter(models.Tag.id == tag_id).first()
     if not task or not tag:
         raise HTTPException(status_code=404, detail="Not found")
+    if task.page_id:
+        require_page_role(db, current_user, task.page_id, "editor")
     if tag in task.tags:
         task.tags.remove(tag)
         db.commit()
@@ -107,7 +112,8 @@ def add_tag_to_page(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    page = db.query(models.Page).filter(models.Page.id == page_id, models.Page.owner_id == current_user.id).first()
+    require_page_role(db, current_user, page_id, "editor")
+    page = db.query(models.Page).filter(models.Page.id == page_id).first()
     tag = db.query(models.Tag).filter(models.Tag.id == tag_id, models.Tag.owner_id == current_user.id).first()
     if not page or not tag:
         raise HTTPException(status_code=404, detail="Page or tag not found")
@@ -124,6 +130,7 @@ def remove_tag_from_page(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    require_page_role(db, current_user, page_id, "editor")
     page = db.query(models.Page).filter(models.Page.id == page_id).first()
     tag = db.query(models.Tag).filter(models.Tag.id == tag_id).first()
     if not page or not tag:
@@ -147,17 +154,16 @@ def global_search(
 
     term = f"%{q.lower()}%"
 
+    effective_roles = compute_effective_page_roles(db, current_user)
+    page_ids = [page_id for page_id, role in effective_roles.items() if role_at_least(role, "viewer")]
+    if not page_ids:
+        return {"pages": [], "tasks": []}
+
     pages = db.query(models.Page).filter(
-        models.Page.owner_id == current_user.id,
+        models.Page.id.in_(page_ids),
         models.Page.is_deleted == False,
         models.Page.title.ilike(term),
     ).limit(20).all()
-
-    # Get page IDs owned by user
-    page_ids = [p.id for p in db.query(models.Page).filter(
-        models.Page.owner_id == current_user.id,
-        models.Page.is_deleted == False,
-    ).all()]
 
     tasks = db.query(models.Task).filter(
         models.Task.page_id.in_(page_ids),

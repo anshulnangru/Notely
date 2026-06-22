@@ -33,6 +33,12 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     name = Column(String, nullable=False, default="")
+    is_email_verified = Column(Boolean, default=False, nullable=False)
+    email_verification_token = Column(String, nullable=True, unique=True)
+    email_verification_sent_at = Column(DateTime, nullable=True)
+    email_verified_at = Column(DateTime, nullable=True)
+    password_reset_token = Column(String, nullable=True, unique=True)
+    password_reset_expires_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     pages = relationship("Page", back_populates="owner", cascade="all, delete-orphan")
@@ -72,6 +78,7 @@ class Page(Base):
     tags = relationship("Tag", secondary=page_tags, back_populates="pages")
     comments = relationship("Comment", back_populates="page", cascade="all, delete-orphan")
     attachments = relationship("Attachment", back_populates="page", cascade="all, delete-orphan")
+    permissions = relationship("PagePermission", back_populates="page", cascade="all, delete-orphan")
 
 
 class Block(Base):
@@ -210,3 +217,31 @@ class Attachment(Base):
 
     page = relationship("Page", back_populates="attachments")
     task = relationship("Task", back_populates="attachments")
+
+
+class PagePermission(Base):
+    __tablename__ = "page_permissions"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    subject_type = Column(String, nullable=False, default="user")   # user | team | public_link
+    subject_id = Column(String, nullable=False)
+    resource_type = Column(String, nullable=False, default="page")  # page | workspace
+    resource_id = Column(String, ForeignKey("pages.id", ondelete="CASCADE"), nullable=False)
+    role = Column(String, nullable=False, default="viewer")         # owner | editor | commenter | viewer
+    inherited_from_permission_id = Column(String, ForeignKey("page_permissions.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    page = relationship("Page", back_populates="permissions")
+    inherited_from_permission = relationship("PagePermission", remote_side=[id])
+
+
+class PageInvite(Base):
+    __tablename__ = "page_invites"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    page_id = Column(String, ForeignKey("pages.id", ondelete="CASCADE"), nullable=False)
+    email = Column(String, nullable=False, index=True)
+    role = Column(String, nullable=False, default="viewer")
+    invited_by_user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    accepted_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

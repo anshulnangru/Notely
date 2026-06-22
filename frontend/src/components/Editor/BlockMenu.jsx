@@ -14,6 +14,10 @@ const TURN_INTO_TYPES = [
   { type: 'quote',    icon: '"',   label: 'Quote' },
   { type: 'code',     icon: '</>',  label: 'Code' },
   { type: 'image',    icon: '🖼',  label: 'Image' },
+  { type: 'table',    icon: '⊞',   label: 'Table' },
+  { type: 'kanban',   icon: '⛶',   label: 'Board (Kanban)' },
+  { type: 'todolist', icon: '☑️',  label: 'Task List' },
+  { type: 'calendar', icon: '📅',  label: 'Calendar' },
   { type: 'divider',  icon: '—',   label: 'Divider' },
 ]
 
@@ -27,10 +31,15 @@ const INSERT_TYPES = [
   { type: 'divider',  icon: '—',  label: 'Divider' },
 ]
 
-export default function BlockMenu({ block, pageId, position, onClose }) {
+export default function BlockMenu({ block, pageId, position, menuRef, onClose }) {
   const ref = useRef()
   const { updateBlock, deleteBlock, duplicateBlock, createBlock } = usePagesStore()
   const [view, setView] = useState('main') // 'main' | 'turnInto' | 'insertBelow'
+
+  // Sync menuRef for the scroll listener in Block.jsx
+  useEffect(() => {
+    if (menuRef) menuRef.current = ref.current
+  }, [menuRef])
 
   // Close on outside click
   useEffect(() => {
@@ -42,9 +51,12 @@ export default function BlockMenu({ block, pageId, position, onClose }) {
   }, [onClose])
 
   const handleTurnInto = async (type) => {
-    const content = type === 'calendar' || type === 'todolist' || type === 'table'
+    const containerTypes = ['calendar', 'todolist', 'table', 'kanban']
+    const content = containerTypes.includes(type)
       ? '{}'
-      : type === 'callout' ? '💡|' + block.content : block.content
+      : type === 'callout' ? '💡|' + block.content
+      : type === 'divider' ? ''
+      : block.content
     await updateBlock(block.id, { type, content })
     onClose()
   }

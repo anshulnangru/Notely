@@ -4,12 +4,77 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from database import get_db
 from auth import get_current_user
+from services.permissions import compute_effective_page_roles, require_page_role, role_at_least
 import models, schemas
 
 router = APIRouter(tags=["tasks"])
 
 
+def _task_link(task: models.Task) -> str | None:
+    return f"/page/{task.page_id}" if task.page_id else None
+
+
+def _create_notification(db: Session, *, user_id: str, type: str, body: str, link: str | None):
+    db.add(models.Notification(
+        user_id=user_id,
+        type=type,
+        body=body,
+        link=link,
+        read=False,
+    ))
+
+
+def _notify_task_created(db: Session, task: models.Task, actor: models.User):
+    if task.assignee_id and task.assignee_id != actor.id:
+        _create_notification(
+            db,
+            user_id=task.assignee_id,
+            type="task_assigned",
+            body=f'{actor.name or actor.email} assigned you "{task.title}".',
+            link=_task_link(task),
+        )
+
+
+def _notify_task_updated(db: Session, task: models.Task, actor: models.User, previous: dict):
+    recipients = {uid for uid in [task.assignee_id] if uid and uid != actor.id}
+    if not recipients:
+        return
+
+    if previous.get("assignee_id") != task.assignee_id and task.assignee_id and task.assignee_id != actor.id:
+        _create_notification(
+            db,
+            user_id=task.assignee_id,
+            type="task_assigned",
+            body=f'{actor.name or actor.email} assigned you "{task.title}".',
+            link=_task_link(task),
+        )
+
+    if previous.get("status") != task.status:
+        status_label = task.status.replace("_", " ")
+        for user_id in recipients:
+            _create_notification(
+                db,
+                user_id=user_id,
+                type="task_updated",
+                body=f'{actor.name or actor.email} changed "{task.title}" to {status_label}.',
+                link=_task_link(task),
+            )
+
+    if previous.get("due_date") != task.due_date and task.due_date:
+        for user_id in recipients:
+            _create_notification(
+                db,
+                user_id=user_id,
+                type="task_updated",
+                body=f'"{task.title}" is now due {task.due_date.strftime("%b %d, %I:%M %p")}.',
+                link=_task_link(task),
+            )
+
+
 def _get_task_or_404(task_id: str, user_id: str, db: Session) -> models.Task:
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
     task = db.query(models.Task).filter(
         models.Task.id == task_id,
         models.Task.is_deleted == False,
@@ -18,12 +83,7 @@ def _get_task_or_404(task_id: str, user_id: str, db: Session) -> models.Task:
         raise HTTPException(status_code=404, detail="Task not found")
     # Verify page ownership if task belongs to a page
     if task.page_id:
-        page = db.query(models.Page).filter(
-            models.Page.id == task.page_id,
-            models.Page.owner_id == user_id,
-        ).first()
-        if not page:
-            raise HTTPException(status_code=403, detail="Not authorized")
+        require_page_role(db, user, task.page_id, "viewer")
     return task
 
 
@@ -37,13 +97,7 @@ def list_tasks(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    # Verify page ownership
-    page = db.query(models.Page).filter(
-        models.Page.id == page_id,
-        models.Page.owner_id == current_user.id,
-    ).first()
-    if not page:
-        raise HTTPException(status_code=404, detail="Page not found")
+    require_page_role(db, current_user, page_id, "viewer")
 
     q = db.query(models.Task).filter(
         models.Task.page_id == page_id,
@@ -68,11 +122,8 @@ def list_all_tasks(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    # Get all page IDs owned by user
-    page_ids = [p.id for p in db.query(models.Page).filter(
-        models.Page.owner_id == current_user.id,
-        models.Page.is_deleted == False,
-    ).all()]
+    effective_roles = compute_effective_page_roles(db, current_user)
+    page_ids = [page_id for page_id, role in effective_roles.items() if role_at_least(role, "viewer")]
 
     q = db.query(models.Task).filter(
         models.Task.page_id.in_(page_ids),
@@ -95,12 +146,7 @@ def create_task(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    page = db.query(models.Page).filter(
-        models.Page.id == page_id,
-        models.Page.owner_id == current_user.id,
-    ).first()
-    if not page:
-        raise HTTPException(status_code=404, detail="Page not found")
+    require_page_role(db, current_user, page_id, "editor")
 
     # Determine order
     sibling_count = db.query(models.Task).filter(
@@ -123,6 +169,8 @@ def create_task(
     db.add(task)
     db.commit()
     db.refresh(task)
+    _notify_task_created(db, task, current_user)
+    db.commit()
     return task
 
 
@@ -145,6 +193,14 @@ def update_task(
     current_user: models.User = Depends(get_current_user),
 ):
     task = _get_task_or_404(task_id, current_user.id, db)
+    if task.page_id:
+        require_page_role(db, current_user, task.page_id, "editor")
+
+    previous = {
+        "status": task.status,
+        "due_date": task.due_date,
+        "assignee_id": task.assignee_id,
+    }
 
     for field, value in task_in.model_dump(exclude_unset=True).items():
         setattr(task, field, value)
@@ -152,6 +208,8 @@ def update_task(
     task.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(task)
+    _notify_task_updated(db, task, current_user, previous)
+    db.commit()
     return task
 
 
@@ -163,6 +221,8 @@ def delete_task(
     current_user: models.User = Depends(get_current_user),
 ):
     task = _get_task_or_404(task_id, current_user.id, db)
+    if task.page_id:
+        require_page_role(db, current_user, task.page_id, "editor")
     task.is_deleted = True
     task.updated_at = datetime.utcnow()
     db.commit()
@@ -177,6 +237,7 @@ def reorder_tasks(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    require_page_role(db, current_user, page_id, "editor")
     tasks = db.query(models.Task).filter(models.Task.page_id == page_id).all()
     task_map = {t.id: t for t in tasks}
     for idx, tid in enumerate(task_ids):

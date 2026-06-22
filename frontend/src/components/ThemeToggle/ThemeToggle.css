@@ -1,0 +1,84 @@
+/* ── ThemeToggle component styles ── */
+
+.theme-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1.5px solid rgba(0,0,0,0.12);
+    border-radius: 999px;
+    padding: 5px 10px 5px 6px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    font-size: 13px;
+    color: inherit;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .theme-toggle-btn {
+    border-color: rgba(255,255,255,0.15);
+}
+
+.theme-toggle-btn:hover {
+    border-color: rgba(0,0,0,0.3);
+    background: rgba(0,0,0,0.04);
+}
+
+[data-theme="dark"] .theme-toggle-btn:hover {
+    border-color: rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.06);
+}
+
+/* Track */
+.theme-toggle-track {
+    width: 28px;
+    height: 16px;
+    background: rgba(0,0,0,0.10);
+    border-radius: 999px;
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+
+[data-theme="dark"] .theme-toggle-track {
+    background: rgba(255,255,255,0.15);
+}
+
+/* Thumb */
+.theme-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    transition: transform 0.2s ease, background 0.2s;
+}
+
+.theme-toggle-thumb.dark {
+    transform: translateX(12px);
+    background: #f0ede6;
+}
+
+.theme-toggle-label {
+    font-size: 14px;
+    line-height: 1;
+}
+
+/* Sidebar compact variant */
+.theme-toggle-compact {
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+/* Ghost variant — no border, for minimal navbars */
+.theme-toggle-ghost {
+    border-color: transparent;
+}
+.theme-toggle-ghost:hover {
+    border-color: rgba(0,0,0,0.12);
+}
+[data-theme="dark"] .theme-toggle-ghost:hover {
+    border-color: rgba(255,255,255,0.15);
+}

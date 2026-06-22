@@ -11,4 +11,9 @@ export const pagesApi = {
     trash:           ()       => client.get('/pages/trash').then(r => r.data),
     restore:         (id)     => client.post(`/pages/${id}/restore`).then(r => r.data),
     permanentDelete: (id)     => client.delete(`/pages/${id}/permanent`).then(r => r.data),
+    getPermissions:  (id)     => client.get(`/pages/${id}/permissions`).then(r => r.data),
+    grantPermission: (id, d)  => client.post(`/pages/${id}/permissions`, d).then(r => r.data),
+    revokePermission:(id, permissionId) => client.delete(`/pages/${id}/permissions/${permissionId}`).then(r => r.data),
+    updatePermission:(id, permissionId, d) => client.patch(`/pages/${id}/permissions/${permissionId}`, d).then(r => r.data),
+    updateInvite:    (id, inviteId, d) => client.patch(`/pages/${id}/invites/${inviteId}`, d).then(r => r.data),
 }

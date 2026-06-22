@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from database import get_db
 from auth import get_current_user
+from services.permissions import require_page_role
 import models, re
 
 router = APIRouter(prefix="/comments", tags=["comments"])
@@ -71,6 +72,7 @@ def get_page_comments(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    require_page_role(db, current_user, page_id, "viewer")
     return db.query(models.Comment).filter(
         models.Comment.page_id == page_id,
         models.Comment.is_deleted == False,
@@ -83,6 +85,14 @@ def get_task_comments(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    task = db.query(models.Task).filter(
+        models.Task.id == task_id,
+        models.Task.is_deleted == False,
+    ).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    if task.page_id:
+        require_page_role(db, current_user, task.page_id, "viewer")
     return db.query(models.Comment).filter(
         models.Comment.task_id == task_id,
         models.Comment.is_deleted == False,
@@ -95,6 +105,21 @@ def create_comment(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    if bool(comment_in.page_id) == bool(comment_in.task_id):
+        raise HTTPException(status_code=400, detail="Provide either page_id or task_id")
+
+    if comment_in.page_id:
+        require_page_role(db, current_user, comment_in.page_id, "commenter")
+    if comment_in.task_id:
+        task = db.query(models.Task).filter(
+            models.Task.id == comment_in.task_id,
+            models.Task.is_deleted == False,
+        ).first()
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+        if task.page_id:
+            require_page_role(db, current_user, task.page_id, "commenter")
+
     comment = models.Comment(
         body=comment_in.body,
         author_id=current_user.id,
@@ -133,10 +158,17 @@ def update_comment(
 ):
     comment = db.query(models.Comment).filter(
         models.Comment.id == comment_id,
-        models.Comment.author_id == current_user.id,
     ).first()
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
+    if comment.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the author can edit this comment")
+    if comment.page_id:
+        require_page_role(db, current_user, comment.page_id, "commenter")
+    if comment.task_id:
+        task = db.query(models.Task).filter(models.Task.id == comment.task_id).first()
+        if task and task.page_id:
+            require_page_role(db, current_user, task.page_id, "commenter")
     comment.body = comment_in.body
     comment.updated_at = datetime.utcnow()
     db.commit()
@@ -152,10 +184,17 @@ def delete_comment(
 ):
     comment = db.query(models.Comment).filter(
         models.Comment.id == comment_id,
-        models.Comment.author_id == current_user.id,
     ).first()
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
+    if comment.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the author can delete this comment")
+    if comment.page_id:
+        require_page_role(db, current_user, comment.page_id, "commenter")
+    if comment.task_id:
+        task = db.query(models.Task).filter(models.Task.id == comment.task_id).first()
+        if task and task.page_id:
+            require_page_role(db, current_user, task.page_id, "commenter")
     comment.is_deleted = True
     db.commit()
     return {"ok": True}

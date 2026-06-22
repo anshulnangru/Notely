@@ -1,21 +1,29 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+from anyio import from_thread
 from database import get_db
 from auth import get_current_user
+from services.permissions import require_page_role
+from services.collaboration.manager import collaboration_manager
 import models, schemas
 from datetime import datetime
 
 router = APIRouter(tags=["blocks"])
 
 
+def _broadcast_page_event(page_id: str, message: dict) -> None:
+    try:
+        from_thread.run(collaboration_manager.broadcast, page_id, message)
+    except Exception:
+        pass
+
+
 def _get_page_or_404(page_id: str, user_id: str, db: Session) -> models.Page:
-    page = db.query(models.Page).filter(
-        models.Page.id == page_id,
-        models.Page.owner_id == user_id,
-    ).first()
-    if not page:
-        raise HTTPException(status_code=404, detail="Page not found")
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    page, _ = require_page_role(db, user, page_id, "viewer")
     return page
 
 
@@ -26,7 +34,7 @@ def create_block(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _get_page_or_404(page_id, current_user.id, db)
+    require_page_role(db, current_user, page_id, "editor")
 
     block = models.Block(
         page_id=page_id,
@@ -38,6 +46,14 @@ def create_block(
     db.add(block)
     db.commit()
     db.refresh(block)
+    _broadcast_page_event(page_id, {
+        "type": "block.created",
+        "pageId": page_id,
+        "payload": {
+            "pageId": page_id,
+            "block": schemas.BlockOut.model_validate(block).model_dump(mode="json"),
+        },
+    })
     return block
 
 
@@ -51,7 +67,7 @@ def update_block(
     block = db.query(models.Block).filter(models.Block.id == block_id).first()
     if not block:
         raise HTTPException(status_code=404, detail="Block not found")
-    _get_page_or_404(block.page_id, current_user.id, db)
+    require_page_role(db, current_user, block.page_id, "editor")
 
     if block_in.type is not None:
         block.type = block_in.type
@@ -65,6 +81,14 @@ def update_block(
     block.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(block)
+    _broadcast_page_event(block.page_id, {
+        "type": "block.updated",
+        "pageId": block.page_id,
+        "payload": {
+            "pageId": block.page_id,
+            "block": schemas.BlockOut.model_validate(block).model_dump(mode="json"),
+        },
+    })
     return block
 
 
@@ -77,9 +101,18 @@ def delete_block(
     block = db.query(models.Block).filter(models.Block.id == block_id).first()
     if not block:
         raise HTTPException(status_code=404, detail="Block not found")
-    _get_page_or_404(block.page_id, current_user.id, db)
+    require_page_role(db, current_user, block.page_id, "editor")
+    page_id = block.page_id
     db.delete(block)
     db.commit()
+    _broadcast_page_event(page_id, {
+        "type": "block.deleted",
+        "pageId": page_id,
+        "payload": {
+            "pageId": page_id,
+            "blockId": block_id,
+        },
+    })
     return {"ok": True}
 
 
@@ -90,7 +123,7 @@ def reorder_blocks(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _get_page_or_404(page_id, current_user.id, db)
+    require_page_role(db, current_user, page_id, "editor")
 
     blocks = db.query(models.Block).filter(models.Block.page_id == page_id).all()
     block_map = {b.id: b for b in blocks}
@@ -100,4 +133,13 @@ def reorder_blocks(
             block_map[block_id].order = idx
 
     db.commit()
-    return sorted(blocks, key=lambda b: b.order)
+    ordered_blocks = sorted(blocks, key=lambda b: b.order)
+    _broadcast_page_event(page_id, {
+        "type": "blocks.reordered",
+        "pageId": page_id,
+        "payload": {
+            "pageId": page_id,
+            "blocks": [schemas.BlockOut.model_validate(block).model_dump(mode="json") for block in ordered_blocks],
+        },
+    })
+    return ordered_blocks
