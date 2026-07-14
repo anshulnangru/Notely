@@ -25,15 +25,15 @@ export default function LoginPage() {
     const registeredEmail = searchParams.get('email') || ''
     const justRegistered = searchParams.get('registered') === '1'
 
-    // Already logged in — bounce home
-    if (token) return <Navigate to="/" replace />
-
     const initialInfo = useMemo(() => {
         if (searchParams.get('verified') === '1') return 'Email verified successfully. You can log in now.'
         if (searchParams.get('reset') === '1') return 'Password reset successfully. You can log in now.'
         if (justRegistered && registeredEmail) return `Account created for ${registeredEmail}. Please verify your email before logging in.`
         return ''
     }, [searchParams, justRegistered, registeredEmail])
+
+    // Already logged in — bounce home
+    if (token) return <Navigate to="/" replace />
 
     const validate = () => {
         const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
