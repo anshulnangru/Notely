@@ -7,7 +7,6 @@ import BlockMenu from './BlockMenu'
 import { useCollaboration } from '../../collaboration/CollaborationProvider'
 import { API_BASE } from '../../api/client'
 
-console.log('[Block.jsx v3] loaded')   // ← remove after confirming
 
 // ── Markdown shortcuts ─────────────────────────────
 const MD_SHORTCUTS = [

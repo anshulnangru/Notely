@@ -18,7 +18,14 @@ def _verification_required() -> bool:
     return email_enabled()
 
 
+_IS_PRODUCTION = os.getenv("APP_ENV", "").lower() == "production" or bool(os.getenv("RENDER"))
+
+
 def _can_expose_dev_reset_link() -> bool:
+    # Returning the reset link in the API response lets anyone reset any account's
+    # password, so it is only ever allowed on a developer machine, never in production.
+    if _IS_PRODUCTION:
+        return False
     return APP_BASE_URL.startswith("http://localhost") or APP_BASE_URL.startswith("http://127.0.0.1")
 
 
