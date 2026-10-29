@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import client from '../../api/client'
+import client, { API_BASE } from '../../api/client'
 
 const ICON_MAP = {
     'image': '🖼️', 'pdf': '📄', 'video': '🎥',
@@ -115,7 +115,7 @@ export default function FileUploadPanel({ pageId, taskId }) {
                             <div className="file-info">
                                 <a
                                     className="file-name"
-                                    href={`http://localhost:8000${att.url}`}
+                                    href={`${API_BASE}${att.url}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >{att.filename}</a>

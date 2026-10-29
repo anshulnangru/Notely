@@ -11,7 +11,15 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models
 
-SECRET_KEY = "super-secret-notion-clone-key-change-in-prod"
+# JWT signing key. Set SECRET_KEY in the environment (generate one with:
+#   python -c "import secrets; print(secrets.token_urlsafe(64))")
+_IS_PRODUCTION = os.getenv("APP_ENV", "").lower() == "production" or bool(os.getenv("RENDER"))
+SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
+if not SECRET_KEY:
+    if _IS_PRODUCTION:
+        raise RuntimeError("SECRET_KEY environment variable is required in production.")
+    SECRET_KEY = "dev-only-insecure-key-not-for-production"
+    print("[auth] WARNING: SECRET_KEY not set; using an insecure development key.")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
@@ -66,4 +74,3 @@ def get_current_user(
     if user is None:
         raise credentials_exception
     return user
-

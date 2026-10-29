@@ -1,0 +1,24 @@
+# Secrets / environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local SQLite database
+*.db
+*.sqlite3
+
+# User-uploaded files (recreated at startup)
+uploads/
+
+# Logs
+*.log

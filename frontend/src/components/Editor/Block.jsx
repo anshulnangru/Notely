@@ -5,6 +5,7 @@ import usePagesStore from '../../store/usePagesStore'
 import SlashMenu from './SlashMenu'
 import BlockMenu from './BlockMenu'
 import { useCollaboration } from '../../collaboration/CollaborationProvider'
+import { API_BASE } from '../../api/client'
 
 console.log('[Block.jsx v3] loaded')   // ← remove after confirming
 
@@ -163,8 +164,6 @@ function CalloutBlock({ block, onChange, onKeyDown, inputRef, readOnly = false }
 }
 
 // ── ImageBlock ────────────────────────────────────
-const API_BASE = 'http://localhost:8000'
-
 function ImageBlock({ block, onChange }) {
     const [tab, setTab] = useState('upload')   // 'upload' | 'url'
     const [inputUrl, setInputUrl] = useState('')
@@ -190,7 +189,7 @@ function ImageBlock({ block, onChange }) {
                     return data
                 },
             })
-            onChange(`${API_BASE}${res.data.url}`)
+            onChange(res.data.url)   // stored relative so it survives a change of API domain
         } catch (err) {
             console.error('Image upload failed', err)
         } finally {

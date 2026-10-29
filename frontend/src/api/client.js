@@ -1,7 +1,8 @@
 import axios from 'axios'
 import { logger } from '../utils/logger'
 
-export const API_BASE = 'http://localhost:8000'
+// Set VITE_API_URL in Vercel (e.g. https://notely-api.onrender.com). Falls back to local dev.
+export const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/+$/, '')
 
 const client = axios.create({
     baseURL: API_BASE,

@@ -1,0 +1,8 @@
+# Project-specific rules live in backend/.gitignore and frontend/.gitignore
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

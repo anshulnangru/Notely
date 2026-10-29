@@ -103,14 +103,18 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Notely API", version="2.0.0", lifespan=lifespan)
 
 # ── CORS ──────────────────────────────────────────────────────
+_LOCAL_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",   # fallback Vite port
+    "http://127.0.0.1:5174",
+]
+# Comma-separated extra origins, e.g. CORS_ORIGINS=https://notely.vercel.app
+_EXTRA_ORIGINS = [o.strip().rstrip("/") for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:5174",   # fallback Vite port
-        "http://127.0.0.1:5174",
-    ],
+    allow_origins=_LOCAL_ORIGINS + _EXTRA_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -157,6 +161,12 @@ app.include_router(inbox.router)
 app.include_router(uploads.router)
 app.include_router(activity.router)
 app.include_router(collaboration.router)
+
+
+@app.api_route("/health", methods=["GET", "HEAD"])
+def health():
+    """Liveness check for Render and uptime monitors."""
+    return {"status": "ok"}
 
 
 @app.get("/")
