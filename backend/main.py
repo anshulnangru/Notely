@@ -8,6 +8,7 @@ from database import engine, Base, SQLALCHEMY_DATABASE_URL
 import models  # ensure tables are registered
 from routers import auth, pages, blocks, tasks, tags, dashboard, comments, notifications, uploads, activity, collaboration, inbox
 from scheduler import send_due_soon_notifications, start_scheduler
+from sqlalchemy.engine import make_url
 import os
 import logging
 import time
@@ -91,7 +92,7 @@ _scheduler_stop = None
 async def lifespan(app: FastAPI):
     global _scheduler_stop
     log.info("  Notely API starting up")
-    log.info(" Database engine ready: %s", SQLALCHEMY_DATABASE_URL)
+    log.info(" Database engine ready: %s", make_url(SQLALCHEMY_DATABASE_URL).render_as_string(hide_password=True))
     send_due_soon_notifications()
     _scheduler_stop = start_scheduler(interval_seconds=60)
     yield
